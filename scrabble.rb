@@ -16,6 +16,32 @@ POINTS = Hash[{
   10 => [:q, :z]
 }.invert.map {|k,v| k.zip [v].cycle }.flatten(1)]
 
+#
+# Dictionary of words that can be used in scrabble
+#
+DICT = File.open('dict.txt').each_line.to_a.map!(&:strip)
+
+#
+# Returns how much points you would get for the word
+#
 def score(word)
   word.each_char.to_a.map {|c| POINTS[c.to_sym] }.inject(:+)
+end
+
+#
+# Select words which contains every specified letter
+# TODO: memoize sort steps in data-structure similar to Trie
+#
+def by_letters(letters)
+  result = DICT
+  letters.each_char {|l| result.select! {|w| w.include? l } }
+
+  result
+end
+
+#
+# List of appropriate words sorted by score
+#
+def best_words(letters)
+  by_letters(letters).sort! {|x,y| score(x) <=> score(y) }
 end

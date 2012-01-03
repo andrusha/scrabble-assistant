@@ -1,5 +1,55 @@
 #!/usr/bin/ruby
 
+class Trie
+  def initialize
+    @nodes = Hash.new {|h,k| h[k] = Trie.new}
+    @data  = Array.new
+  end
+
+  def add(str, path = nil)
+    path = self.to_path(path || str)
+
+    if path.empty?
+      @data.push(str)  unless @data.include? str
+    else
+      @nodes[path.pop].add str, path
+    end
+
+    self
+  end
+
+  def find(path, found = [])
+    path = self.to_path path
+
+    if path.empty?
+      @data + found
+    else
+      @nodes[path.pop].find(path, @data + found)
+    end
+  end
+
+  def find_all(path)
+    path = self.to_path path
+    found = []
+
+    until path.empty?
+      found += find path.clone
+      path.pop
+    end
+
+    found
+  end
+
+  protected
+  def self.to_path(str)
+    if str.is_a? Array
+      str
+    else
+      str.downcase.each_char.to_a.sort.uniq
+    end
+  end
+end
+
 #
 # Convert human-readable list of the scores per letter
 # into the hash of the following format:
@@ -17,26 +67,22 @@ POINTS = Hash[{
 }.invert.map {|k,v| k.zip [v].cycle }.flatten(1)]
 
 #
-# Dictionary of words that can be used in scrabble
-#
-DICT = File.open('dict.txt').each_line.to_a.map!(&:strip)
-
-#
 # Returns how much points you would get for the word
 #
-def score(word)
-  word.each_char.to_a.map {|c| POINTS[c.to_sym] }.inject(:+)
+def build_dict
+  trie = Trie.new
+  File.open('dict.txt').each_line.to_a.map!(&:strip).each {|w| trie.add w }
+  
+  trie
 end
+
+DICT = build_dict
 
 #
 # Select words which contains every specified letter
-# TODO: memoize sort steps in data-structure similar to Trie
 #
 def by_letters(letters)
-  result = DICT
-  letters.each_char {|l| result.select! {|w| w.include? l } }
-
-  result
+  DICT.find letters
 end
 
 #
